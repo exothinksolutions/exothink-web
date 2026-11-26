@@ -351,3 +351,14 @@ p{max-width:62ch}
   .tl-item{opacity:1}.tl-fill{height:calc(100% - 52px)}
   .mq-track{animation:none;flex-wrap:wrap;width:auto;justify-content:center}.mq-dup{display:none}
 }
+
+/* =========================================================
+   Modo GSAP (html.gsap): GSAP controla las animaciones
+   ========================================================= */
+.gsap .rv{transition:none}
+.gsap .hero .rv,.gsap .phero .rv{animation:none;opacity:0}
+.gsap .hero-bg{animation:none;transform:scale(1.12)}
+.gsap .reveal-text .w,.gsap .lead[data-reveal] .w{transition:none}
+.gsap .card{transition:border-color .3s}
+.gsap .card:hover{transform:none}
+.media,.prod,.maplink{overflow:hidden}

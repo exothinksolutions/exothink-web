@@ -2,6 +2,10 @@
 (function () {
   const body = document.body;
   const hdr = document.querySelector('.hdr');
+  const REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // GSAP + ScrollTrigger (assets/vendor). Si no cargan, se usa la versión simple de abajo.
+  const G = !!(window.gsap && window.ScrollTrigger) && !REDUCE;
+  if (G) { gsap.registerPlugin(ScrollTrigger); document.documentElement.classList.add('gsap'); }
 
   // Header sólido al hacer scroll
   const onScroll = () => hdr && hdr.classList.toggle('solid', window.scrollY > 40);
@@ -21,7 +25,9 @@
 
   // Animaciones de entrada
   const els = document.querySelectorAll('.rv, .step');
-  if ('IntersectionObserver' in window) {
+  if (G) {
+    /* GSAP se encarga (ver más abajo) */
+  } else if ('IntersectionObserver' in window) {
     const io = new IntersectionObserver(entries => {
       entries.forEach(e => {
         if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
@@ -43,7 +49,7 @@
     };
     requestAnimationFrame(tick);
   };
-  if ('IntersectionObserver' in window) {
+  if (!G && 'IntersectionObserver' in window) {
     const co = new IntersectionObserver(entries => {
       entries.forEach(e => { if (e.isIntersecting) { run(e.target); co.unobserve(e.target); } });
     }, { threshold: 0.6 });
@@ -141,7 +147,77 @@
       });
     });
   };
-  if (reduce) {
+  if (G) {
+    const EASE = 'power3.out';
+
+    // Entrada del hero (inicio y páginas internas)
+    const heroBits = document.querySelectorAll('.hero .rv, .phero .rv');
+    if (heroBits.length) gsap.fromTo(heroBits, { opacity: 0, y: 48 }, { opacity: 1, y: 0, duration: 1.1, stagger: 0.12, ease: EASE, delay: 0.15 });
+    gsap.from('.hdr', { y: -30, opacity: 0, duration: 0.9, ease: EASE });
+
+    // Aparición escalonada del resto de elementos
+    const rest = gsap.utils.toArray('.rv').filter(el => !el.closest('.hero, .phero'));
+    gsap.set(rest, { opacity: 0, y: 44 });
+    ScrollTrigger.batch(rest, {
+      start: 'top 88%', once: true,
+      onEnter: batch => gsap.to(batch, { opacity: 1, y: 0, duration: 0.95, stagger: 0.1, ease: EASE, overwrite: true })
+    });
+
+    // Parallax en fondos e imágenes
+    gsap.utils.toArray('.hero-bg, .phero .bg').forEach(bg => gsap.to(bg, {
+      yPercent: 18, ease: 'none', scrollTrigger: { trigger: bg.parentElement, start: 'top top', end: 'bottom top', scrub: true }
+    }));
+    gsap.utils.toArray('.media img, .prod .pbg, .maplink img').forEach(img => gsap.fromTo(img,
+      { yPercent: -6, scale: 1.12 }, { yPercent: 6, scale: 1.12, ease: 'none',
+        scrollTrigger: { trigger: img.parentElement, start: 'top bottom', end: 'bottom top', scrub: true } }));
+    gsap.utils.toArray('.cta .bg').forEach(bg => gsap.fromTo(bg, { yPercent: -12 }, { yPercent: 12, ease: 'none',
+      scrollTrigger: { trigger: bg.parentElement, start: 'top bottom', end: 'bottom top', scrub: true } }));
+
+    // Texto que se ilumina palabra por palabra
+    reveals.forEach(({ el, words }) => gsap.to(words, {
+      opacity: 1, ease: 'none', stagger: 0.08,
+      scrollTrigger: { trigger: el, start: 'top 82%', end: 'bottom 42%', scrub: 0.6 }
+    }));
+
+    // Palabra gigante de fondo y logotipo con imagen
+    gsap.utils.toArray('.manifesto, .claim').forEach(sec => gsap.fromTo(sec, { '--p': 0 }, { '--p': 1, ease: 'none',
+      scrollTrigger: { trigger: sec, start: 'top bottom', end: 'bottom top', scrub: 1 } }));
+    gsap.utils.toArray('.bigmark').forEach(sec => gsap.fromTo(sec, { '--p': 0 }, { '--p': 1, ease: 'none',
+      scrollTrigger: { trigger: sec, start: 'top top', end: 'bottom bottom', scrub: 0.8 } }));
+
+    // Línea de tiempo
+    timelines.forEach(tl => {
+      gsap.fromTo(tl, { '--p': 0 }, { '--p': 1, ease: 'none',
+        scrollTrigger: { trigger: tl, start: 'top 60%', end: 'bottom 60%', scrub: 0.5 } });
+      tl.querySelectorAll('.tl-item').forEach(it => ScrollTrigger.create({
+        trigger: it, start: 'top 60%',
+        onEnter: () => it.classList.add('on'), onLeaveBack: () => it.classList.remove('on')
+      }));
+    });
+
+    // Contadores
+    document.querySelectorAll('[data-count]').forEach(el => {
+      const end = parseFloat(el.dataset.count);
+      const obj = { v: 0 };
+      el.textContent = '0';
+      gsap.to(obj, { v: end, duration: 1.8, ease: 'power2.out',
+        scrollTrigger: { trigger: el, start: 'top 90%', once: true },
+        onUpdate: () => { el.textContent = Math.round(obj.v); } });
+    });
+
+    // Tarjetas: ligera inclinación al pasar el mouse (solo escritorio)
+    if (window.matchMedia('(hover: hover)').matches) {
+      document.querySelectorAll('.card, .mq-card').forEach(c => {
+        c.addEventListener('mousemove', e => {
+          const r = c.getBoundingClientRect();
+          gsap.to(c, { rotateX: ((e.clientY - r.top) / r.height - .5) * -6, rotateY: ((e.clientX - r.left) / r.width - .5) * 6, transformPerspective: 800, duration: .4, ease: 'power2.out' });
+        });
+        c.addEventListener('mouseleave', () => gsap.to(c, { rotateX: 0, rotateY: 0, duration: .6, ease: 'power3.out' }));
+      });
+    }
+
+    window.addEventListener('load', () => ScrollTrigger.refresh());
+  } else if (reduce) {
     reveals.forEach(({ words }) => words.forEach(w => w.classList.add('on')));
     timelines.forEach(tl => tl.querySelectorAll('.tl-item').forEach(it => it.classList.add('on')));
   } else {
