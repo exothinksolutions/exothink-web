@@ -290,7 +290,7 @@ p{max-width:62ch}
 .reveal-text b .w.on,.reveal-text b{color:var(--verde)}
 .lead[data-reveal] .w{opacity:.25;transition:opacity .35s}
 .lead[data-reveal] .w.on{opacity:1}
-.wm{position:absolute;right:-4vw;bottom:-4vw;font:800 clamp(8rem,26vw,24rem)/.8 var(--f-titulo);color:transparent;-webkit-text-stroke:1.5px var(--linea);letter-spacing:-.02em;pointer-events:none;white-space:nowrap;transform:translateX(calc(var(--p,0) * -18%));will-change:transform}
+span.wm{position:absolute;right:-4vw;bottom:-4vw;font:800 clamp(8rem,26vw,24rem)/.8 var(--f-titulo);color:transparent;-webkit-text-stroke:1.5px var(--linea);letter-spacing:-.02em;pointer-events:none;white-space:nowrap;transform:translateX(calc(var(--p,0) * -18%));will-change:transform}
 
 /* Logotipo gigante con imagen dentro */
 .bigmark{height:220vh;position:relative;background:var(--noche)}
@@ -362,3 +362,45 @@ p{max-width:62ch}
 .gsap .card{transition:border-color .3s}
 .gsap .card:hover{transform:none}
 .media,.prod,.maplink{overflow:hidden}
+
+/* ---------- Menú: desplegable de Productos ---------- */
+.dd{position:relative}
+.dd-t{display:inline-flex;align-items:center;gap:6px;background:none;border:0;cursor:pointer;font:inherit;font-size:.9rem;font-weight:500;color:var(--plata);padding:6px 0;position:relative}
+.dd-t svg{width:14px;height:14px;transition:transform .25s}
+.dd-t::after{content:"";position:absolute;left:0;bottom:0;height:2px;width:0;background:var(--verde);transition:width .25s}
+.dd-t:hover::after,.dd-t.on::after{width:100%}
+.dd-t.on{color:#fff}
+.dd-m{position:absolute;top:calc(100% + 18px);left:50%;width:330px;padding:10px;background:var(--noche);border:1px solid var(--linea);box-shadow:0 24px 60px rgba(0,0,0,.45);opacity:0;visibility:hidden;transform:translate(-50%,8px);transition:opacity .2s,transform .2s,visibility .2s}
+.dd-m::before{content:"";position:absolute;left:0;right:0;top:-20px;height:20px}
+.dd:hover .dd-m,.dd:focus-within .dd-m,.dd.open .dd-m{opacity:1;visibility:visible;transform:translate(-50%,0)}
+.dd:hover .dd-t svg,.dd.open .dd-t svg{transform:rotate(180deg)}
+.nav .dd-m a{display:block;padding:12px 14px;border-left:2px solid transparent;transition:background .2s,border-color .2s}
+.nav .dd-m a::after{display:none}
+.nav .dd-m a:hover,.nav .dd-m a.on{background:var(--espacio);border-color:var(--verde)}
+.dd-m b{display:block;font-family:'Barlow',sans-serif;font-weight:700;font-size:1rem;letter-spacing:.02em;color:#fff}
+.dd-m small{display:block;font-family:'Geist Mono',monospace;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--verde);margin-top:2px}
+.prod{scroll-margin-top:110px}
+@media (max-width:860px){
+  .dd{display:flex;flex-direction:column;align-items:center}
+  .dd-t{font-size:1.3rem}
+  .dd-t::after{display:none}
+  .dd-m{position:static;width:auto;padding:0;background:none;border:0;box-shadow:none;transform:none;opacity:1;visibility:visible;display:none;margin-top:8px;text-align:center}
+  .dd.open .dd-m{display:block;transform:none}
+  .dd:hover .dd-m{transform:none}
+  .nav .dd-m a{padding:8px 12px;border:0}
+  .nav .dd-m a:hover,.nav .dd-m a.on{background:none}
+  .dd-m b{font-size:1.05rem;color:var(--plata)}
+  .dd-m small{display:none}
+}
+
+/* ---------- Botón volver arriba (sigue al usuario) ---------- */
+.totop{position:fixed;right:24px;bottom:88px;z-index:40;width:48px;height:48px;border-radius:50%;border:0;padding:0;background:var(--noche);color:#fff;cursor:pointer;display:grid;place-items:center;box-shadow:0 10px 30px rgba(0,0,0,.4);opacity:0;visibility:hidden;transform:translateY(14px);transition:opacity .3s,transform .3s,visibility .3s,color .2s}
+.totop.show{opacity:1;visibility:visible;transform:none}
+.totop:hover{color:var(--verde);transform:translateY(-3px)}
+.totop:focus-visible{outline:2px solid var(--verde);outline-offset:3px}
+.totop .ring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.totop .ring circle{fill:none;stroke:var(--linea);stroke-width:2}
+.totop .ring .bar{stroke:var(--verde);stroke-dasharray:138.2;stroke-dashoffset:calc(138.2 * (1 - var(--sp,0)))}
+.totop .up{width:20px;height:20px;position:relative}
+@media (max-width:560px){.totop{right:26px;bottom:86px;width:44px;height:44px}}
+@media (prefers-reduced-motion:reduce){.totop{transition:none}}

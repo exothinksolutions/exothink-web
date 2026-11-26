@@ -23,6 +23,33 @@
       a.addEventListener('click', () => body.classList.remove('menu-open')));
   }
 
+  // Botón volver arriba: aparece al bajar y muestra el avance de lectura
+  const top = document.querySelector('.totop');
+  if (top) {
+    const upd = () => {
+      const max = document.documentElement.scrollHeight - innerHeight;
+      top.classList.toggle('show', scrollY > 500);
+      top.style.setProperty('--sp', max > 0 ? Math.min(scrollY / max, 1).toFixed(3) : 0);
+    };
+    upd();
+    window.addEventListener('scroll', upd, { passive: true });
+    window.addEventListener('resize', upd);
+    top.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: REDUCE ? 'auto' : 'smooth' });
+      const b = document.querySelector('.brand'); if (b) b.focus({ preventScroll: true });
+    });
+  }
+
+  // Menú desplegable de Productos
+  document.querySelectorAll('.dd').forEach(dd => {
+    const t = dd.querySelector('.dd-t');
+    const set = open => { dd.classList.toggle('open', open); t.setAttribute('aria-expanded', open); };
+    t.addEventListener('click', e => { e.stopPropagation(); set(!dd.classList.contains('open')); });
+    dd.querySelectorAll('.dd-m a').forEach(a => a.addEventListener('click', () => set(false)));
+    document.addEventListener('click', e => { if (!dd.contains(e.target)) set(false); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && dd.classList.contains('open')) { set(false); t.focus(); } });
+  });
+
   // Animaciones de entrada
   const els = document.querySelectorAll('.rv, .step');
   if (G) {
@@ -153,7 +180,8 @@
     // Entrada del hero (inicio y páginas internas)
     const heroBits = document.querySelectorAll('.hero .rv, .phero .rv');
     if (heroBits.length) gsap.fromTo(heroBits, { opacity: 0, y: 48 }, { opacity: 1, y: 0, duration: 1.1, stagger: 0.12, ease: EASE, delay: 0.15 });
-    gsap.from('.hdr', { y: -30, opacity: 0, duration: 0.9, ease: EASE });
+    // clearProps: un transform en .hdr rompería el menú móvil (position:fixed)
+    gsap.from('.hdr', { y: -30, opacity: 0, duration: 0.9, ease: EASE, clearProps: 'transform,opacity' });
 
     // Aparición escalonada del resto de elementos
     const rest = gsap.utils.toArray('.rv').filter(el => !el.closest('.hero, .phero'));
@@ -216,7 +244,17 @@
       });
     }
 
-    window.addEventListener('load', () => ScrollTrigger.refresh());
+    // Enlaces con ancla (p. ej. soluciones.html#exotalk): recolocar tras cargar imágenes y fuentes
+    const goHash = () => {
+      const target = location.hash && document.querySelector(location.hash);
+      if (target) {
+        // Ignora el desplazamiento temporal de la animación de entrada (y) al calcular la posición
+        const y = target.getBoundingClientRect().top + scrollY - (parseFloat(gsap.getProperty(target, 'y')) || 0);
+        window.scrollTo(0, y - (parseFloat(getComputedStyle(target).scrollMarginTop) || 0));
+      }
+    };
+    window.addEventListener('load', () => { ScrollTrigger.refresh(); goHash(); });
+    window.addEventListener('hashchange', goHash);
   } else if (reduce) {
     reveals.forEach(({ words }) => words.forEach(w => w.classList.add('on')));
     timelines.forEach(tl => tl.querySelectorAll('.tl-item').forEach(it => it.classList.add('on')));
