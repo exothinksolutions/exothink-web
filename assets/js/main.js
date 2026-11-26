@@ -79,13 +79,78 @@
       const msg = build();
       const url = via === 'wa'
         ? `https://wa.me/593968545503?text=${encodeURIComponent(msg)}`
-        : `mailto:info@exothink.biz?subject=${encodeURIComponent('Contacto desde exothink.biz')}&body=${encodeURIComponent(msg)}`;
+        : `mailto:info@exothink.tech?subject=${encodeURIComponent('Contacto desde exothink.tech')}&body=${encodeURIComponent(msg)}`;
       window.open(url, via === 'wa' ? '_blank' : '_self');
       form.classList.add('sent');
     };
     form.addEventListener('submit', e => { e.preventDefault(); send('mail'); });
     const waBtn = form.querySelector('[data-wa]');
     if (waBtn) waBtn.addEventListener('click', () => send('wa'));
+  }
+
+
+  // ---------- Animaciones ligadas al scroll ----------
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Divide un texto en palabras conservando <b>, <em>, etc.
+  const splitWords = el => {
+    const walk = node => {
+      [...node.childNodes].forEach(n => {
+        if (n.nodeType === 3) {
+          const frag = document.createDocumentFragment();
+          n.textContent.split(/(\s+)/).forEach(part => {
+            if (!part) return;
+            if (/^\s+$/.test(part)) { frag.appendChild(document.createTextNode(part)); return; }
+            const sp = document.createElement('span'); sp.className = 'w'; sp.textContent = part; frag.appendChild(sp);
+          });
+          n.replaceWith(frag);
+        } else if (n.nodeType === 1) walk(n);
+      });
+    };
+    walk(el);
+    return [...el.querySelectorAll('.w')];
+  };
+  const reveals = [...document.querySelectorAll('[data-reveal]')].map(el => ({ el, words: splitWords(el) }));
+  const scrollers = [...document.querySelectorAll('[data-scroll]')];
+  const timelines = [...document.querySelectorAll('[data-timeline]')];
+
+  const clamp = v => Math.max(0, Math.min(1, v));
+  const update = () => {
+    const vh = window.innerHeight;
+    // Progreso de cada sección: 0 cuando entra por abajo, 1 cuando sale por arriba
+    scrollers.forEach(el => {
+      const r = el.getBoundingClientRect();
+      let p;
+      if (el.classList.contains('bigmark')) p = clamp(-r.top / (r.height - vh));
+      else if (el.hasAttribute('data-timeline')) p = clamp((vh * 0.6 - r.top) / r.height);
+      else p = clamp((vh - r.top) / (r.height + vh));
+      el.style.setProperty('--p', p.toFixed(4));
+    });
+    // Palabras que se encienden según el scroll
+    reveals.forEach(({ el, words }) => {
+      const r = el.getBoundingClientRect();
+      const p = clamp((vh * 0.85 - r.top) / (vh * 0.55 + r.height * 0.5));
+      const n = Math.round(p * words.length);
+      words.forEach((w, i) => w.classList.toggle('on', i < n));
+    });
+    // Pasos de la línea de tiempo
+    timelines.forEach(tl => {
+      tl.querySelectorAll('.tl-item').forEach(it => {
+        const r = it.getBoundingClientRect();
+        it.classList.toggle('on', r.top + 26 < vh * 0.6);
+      });
+    });
+  };
+  if (reduce) {
+    reveals.forEach(({ words }) => words.forEach(w => w.classList.add('on')));
+    timelines.forEach(tl => tl.querySelectorAll('.tl-item').forEach(it => it.classList.add('on')));
+  } else {
+    let ticking = false;
+    const onFrame = () => { ticking = false; update(); };
+    const req = () => { if (!ticking) { ticking = true; requestAnimationFrame(onFrame); } };
+    window.addEventListener('scroll', req, { passive: true });
+    window.addEventListener('resize', req);
+    update();
   }
 
   // Año en el footer
