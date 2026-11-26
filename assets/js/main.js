@@ -15,12 +15,26 @@
   // Menú móvil
   const burger = document.querySelector('.burger');
   if (burger) {
-    burger.addEventListener('click', () => {
-      const open = body.classList.toggle('menu-open');
+    const outside = () => document.querySelectorAll('main, .ftr, .quick, .skip');
+    const setMenu = open => {
+      body.classList.toggle('menu-open', open);
       burger.setAttribute('aria-expanded', open);
+      burger.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú');
+      outside().forEach(el => open ? el.setAttribute('inert', '') : el.removeAttribute('inert'));
+    };
+    burger.addEventListener('click', () => {
+      const open = !body.classList.contains('menu-open');
+      setMenu(open);
+      if (open) { const first = document.querySelector('.nav a'); if (first) setTimeout(() => first.focus(), 60); }
     });
-    document.querySelectorAll('.nav a').forEach(a =>
-      a.addEventListener('click', () => body.classList.remove('menu-open')));
+    document.querySelectorAll('.nav a').forEach(a => a.addEventListener('click', () => setMenu(false)));
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && body.classList.contains('menu-open')) {
+        document.querySelectorAll('.dd.open').forEach(d => { d.classList.remove('open'); d.querySelector('.dd-t').setAttribute('aria-expanded', 'false'); });
+        setMenu(false); burger.focus(); e.stopImmediatePropagation();
+      }
+    });
+    window.matchMedia('(min-width: 861px)').addEventListener('change', e => { if (e.matches) setMenu(false); });
   }
 
   // Botón volver arriba: aparece al bajar y muestra el avance de lectura
@@ -39,6 +53,12 @@
       const b = document.querySelector('.brand'); if (b) b.focus({ preventScroll: true });
     });
   }
+
+  // Industrias: pausar el movimiento
+  document.querySelectorAll('.mq-pause').forEach(b => b.addEventListener('click', () => {
+    const sec = b.closest('section'); const paused = sec.classList.toggle('mq-paused');
+    b.setAttribute('aria-pressed', paused); b.textContent = paused ? 'Reanudar movimiento' : 'Pausar movimiento';
+  }));
 
   // Menú desplegable de Productos
   document.querySelectorAll('.dd').forEach(dd => {
@@ -76,7 +96,7 @@
     };
     requestAnimationFrame(tick);
   };
-  if (!G && 'IntersectionObserver' in window) {
+  if (!G && !REDUCE && 'IntersectionObserver' in window) {
     const co = new IntersectionObserver(entries => {
       entries.forEach(e => { if (e.isIntersecting) { run(e.target); co.unobserve(e.target); } });
     }, { threshold: 0.6 });
@@ -98,6 +118,12 @@
   // Formulario de contacto: sin backend, abre WhatsApp o correo con el mensaje armado
   const form = document.querySelector('#form-contacto');
   if (form) {
+    const interes = new URLSearchParams(location.search).get('interes');
+    const sel = form.querySelector('select[name=interes]');
+    const opt = interes && sel && [...sel.options].find(o => o.value === interes);
+    if (opt) sel.value = opt.value;
+    // En el celular, los botones flotantes no tapan los botones del formulario
+    if ('IntersectionObserver' in window) new IntersectionObserver(([e]) => body.classList.toggle('form-in-view', e.isIntersecting)).observe(form);
     const build = () => {
       const d = new FormData(form);
       return `Hola Exothink, soy ${d.get('nombre') || ''}` +
@@ -112,9 +138,15 @@
       const msg = build();
       const url = via === 'wa'
         ? `https://wa.me/593968545503?text=${encodeURIComponent(msg)}`
-        : `mailto:info@exothink.tech?subject=${encodeURIComponent('Contacto desde exothink.tech')}&body=${encodeURIComponent(msg)}`;
+        : `mailto:info@exothink.tech?subject=${encodeURIComponent(sel && sel.value === 'exocollect' ? 'Demo ExoCollect' : 'Contacto desde exothink.tech')}&body=${encodeURIComponent(msg)}`;
       window.open(url, via === 'wa' ? '_blank' : '_self');
+      // No sabemos si el mensaje se envió: lo decimos y damos los datos de respaldo
+      const ok = form.querySelector('.ok');
+      if (ok) ok.innerHTML = (via === 'wa' ? 'Abrimos WhatsApp' : 'Abrimos tu correo') +
+        ' con el mensaje listo. Solo falta pulsar <b>Enviar</b> allí. Si no se abrió nada, escríbenos a ' +
+        '<a href="mailto:info@exothink.tech">info@exothink.tech</a> o al <a href="https://wa.me/593968545503" target="_blank" rel="noopener">+593 968 545 503</a>.';
       form.classList.add('sent');
+      if (ok) ok.scrollIntoView({ block: 'nearest', behavior: REDUCE ? 'auto' : 'smooth' });
     };
     form.addEventListener('submit', e => { e.preventDefault(); send('mail'); });
     const waBtn = form.querySelector('[data-wa]');
@@ -162,7 +194,7 @@
     // Palabras que se encienden según el scroll
     reveals.forEach(({ el, words }) => {
       const r = el.getBoundingClientRect();
-      const p = clamp((vh * 0.85 - r.top) / (vh * 0.55 + r.height * 0.5));
+      const p = clamp((vh * 0.85 - (r.top + r.height / 2)) / (vh * 0.3));
       const n = Math.round(p * words.length);
       words.forEach((w, i) => w.classList.toggle('on', i < n));
     });
@@ -170,7 +202,7 @@
     timelines.forEach(tl => {
       tl.querySelectorAll('.tl-item').forEach(it => {
         const r = it.getBoundingClientRect();
-        it.classList.toggle('on', r.top + 26 < vh * 0.6);
+        it.classList.toggle('on', r.top + 26 < vh * 0.8);
       });
     });
   };
@@ -185,8 +217,8 @@
 
     // Aparición escalonada del resto de elementos
     const rest = gsap.utils.toArray('.rv').filter(el => !el.closest('.hero, .phero'));
-    gsap.set(rest, { opacity: 0, y: 44 });
-    ScrollTrigger.batch(rest, {
+    if (rest.length) gsap.set(rest, { opacity: 0, y: 44 });
+    if (rest.length) ScrollTrigger.batch(rest, {
       start: 'top 88%', once: true,
       onEnter: batch => gsap.to(batch, { opacity: 1, y: 0, duration: 0.95, stagger: 0.1, ease: EASE, overwrite: true })
     });
@@ -204,7 +236,7 @@
     // Texto que se ilumina palabra por palabra
     reveals.forEach(({ el, words }) => gsap.to(words, {
       opacity: 1, ease: 'none', stagger: 0.08,
-      scrollTrigger: { trigger: el, start: 'top 82%', end: 'bottom 42%', scrub: 0.6 }
+      scrollTrigger: { trigger: el, start: 'top 85%', end: 'center 55%', scrub: 0.6 }
     }));
 
     // Palabra gigante de fondo y logotipo con imagen
@@ -218,7 +250,7 @@
       gsap.fromTo(tl, { '--p': 0 }, { '--p': 1, ease: 'none',
         scrollTrigger: { trigger: tl, start: 'top 60%', end: 'bottom 60%', scrub: 0.5 } });
       tl.querySelectorAll('.tl-item').forEach(it => ScrollTrigger.create({
-        trigger: it, start: 'top 60%',
+        trigger: it, start: 'top 80%',
         onEnter: () => it.classList.add('on'), onLeaveBack: () => it.classList.remove('on')
       }));
     });
